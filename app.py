@@ -9,9 +9,9 @@ import numpy as np
 from deepface import DeepFace  
 import pandas as pd  
 
-# --- Page Configuration (Must be the first Streamlit command) ---
+# --- Page Configuration (must be the first Streamlit command) ---
 st.set_page_config(
-    page_title="MindfulAI",
+    page_title="Ataraxia",
     page_icon="🧠",
     layout="wide"
 )
@@ -25,13 +25,13 @@ def download_stopwords():
         nltk.download('stopwords')
 download_stopwords()
 
-# --- Gradient Themes (as requested) ---
+# Gradient Themes (not working rn)
 themes = {
     "Serene Mint": {
         "bg": "linear-gradient(to right, #D4E2D4, #F2F7F2)",
         "text": "#333333",
         "primary": "#4A6D4A",
-        "secondary_bg": "rgba(255, 255, 255, 0.7)", # A semi-transparent white
+        "secondary_bg": "rgba(255, 255, 255, 0.7)",
     },
     "Calm Blue": {
         "bg": "linear-gradient(to right, #E0EAFC, #CFDEF3)",
@@ -54,8 +54,8 @@ themes = {
     "Default (Dark)": {
         "bg": "#0E117", 
         "text": "#FFFFFF",
-        "primary": "#00A9FF", # Brighter blue for dark mode
-        "secondary_bg": "rgba(40, 40, 40, 0.8)", # A semi-transparent dark grey
+        "primary": "#00A9FF", 
+        "secondary_bg": "rgba(40, 40, 40, 0.8)", 
     }
 }
 
@@ -68,9 +68,9 @@ selected_theme = themes[theme_name]
 BG_CSS = selected_theme["bg"]
 TEXT_CSS = selected_theme["text"]
 PRIMARY_CSS = selected_theme["primary"]
-SECONDARY_BG_CSS = selected_theme["secondary_bg"] # New card background color
+SECONDARY_BG_CSS = selected_theme["secondary_bg"] 
 
-# --- Custom CSS Injection (Fixed for new layout) ---
+#for css injection
 st.markdown(f"""
 <style>
     /* Main app background */
@@ -231,15 +231,13 @@ def load_text_models():
 
 vectorizer, model = load_text_models()
 
-# --- Main App UI ---
-st.title("MindfulAI 🧠")
+st.title("Ataraxia 🧠")
 st.write("Your personal AI assistant for analyzing journal entries and expressions. Write down your thoughts or upload a picture to get gentle, supportive insights.")
 st.divider()
 
 if model is None or vectorizer is None:
     st.error("Text model files not found. Make sure 'model.pkl' and 'vectorizer.pkl' are in the same folder as 'app.py'.")
 else:
-    # --- Create two columns for Text and Visual analysis ---
     col1, col2 = st.columns(2)
 
     # --- COLUMN 1: Text Analysis ---
@@ -267,7 +265,6 @@ else:
                     col1_1.metric(label="Stress Likelihood Score", value=f"{stress_likelihood_score * 100:.2f}%")
                     col1_2.metric(label="Calculated Risk Level", value=risk)
                     
-                    # --- NEW: Suggestions now in a "card" ---
                     with st.container():
                         st.markdown('<div class="suggestion-card">', unsafe_allow_html=True)
                         st.subheader("Supportive Suggestions")
@@ -292,10 +289,7 @@ else:
             bytes_data = uploaded_image.getvalue()
             cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
             
-            # --- UPDATED: Control image width ---
-            st.image(cv2_img, channels="BGR", caption="Your Uploaded Image", width=300) # Set a fixed width
-            # Removed use_column_width as it's deprecated and caused the image to be too large
-            
+            st.image(cv2_img, channels="BGR", caption="Your Uploaded Image", width=300) 
             with st.spinner("Analyzing your expression..."):
                 try:
                     analysis = DeepFace.analyze(
@@ -337,7 +331,7 @@ else:
                         emotions_df.set_index('Emotion'),
                         y='Confidence',
                         color='color',
-                        use_container_width=True # Ensure bar chart scales correctly
+                        use_container_width=True # ensure bar chart scales correctly
                     )
 
                 except ValueError as e:
