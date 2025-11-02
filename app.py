@@ -8,6 +8,8 @@ import cv2
 import numpy as np  
 from deepface import DeepFace  
 import pandas as pd  
+import random  # Added for dynamic spinner messages
+import altair as alt # <-- NEW IMPORT FOR STYLISH CHARTS
 
 # --- Page Configuration (Must be the first Streamlit command) ---
 st.set_page_config(
@@ -16,6 +18,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- NLTK Stopwords Download ---
 @st.cache_data
 def download_stopwords():
     try:
@@ -24,6 +27,7 @@ def download_stopwords():
         nltk.download('stopwords')
 download_stopwords()
 
+# --- THEMES (No change) ---
 themes = {
     "Serene Mint": {
         "bg": "linear-gradient(to right, #D4E2D4, #F2F7F2)",
@@ -57,10 +61,20 @@ themes = {
     }
 }
 
-# --- Sidebar for Theme Selection ---
+# --- Sidebar for Theme Selection & NEW LOFI MUSIC ---
 with st.sidebar:
     st.header("Settings")
     theme_name = st.selectbox("Choose a calming theme:", themes.keys(), index=0)
+    
+    st.divider()
+    
+    st.subheader("🎵 Lofi Music")
+    st.caption("Music for a calm session. Press play to start.")
+    st.audio(
+        "https://raw.githubusercontent.com/serp-ai/code-interpreter-assets/main/lofi-study-112-bpm.mp3", 
+        format="audio/mp3", 
+        loop=True
+    )
 
 selected_theme = themes[theme_name]
 BG_CSS = selected_theme["bg"]
@@ -68,7 +82,7 @@ TEXT_CSS = selected_theme["text"]
 PRIMARY_CSS = selected_theme["primary"]
 SECONDARY_BG_CSS = selected_theme["secondary_bg"] 
 
-# --- Custom CSS Injection (Fixed for new layout) ---
+# --- Custom CSS Injection (UPDATED) ---
 st.markdown(f"""
 <style>
     /* Main app background */
@@ -114,7 +128,7 @@ st.markdown(f"""
         color: {TEXT_CSS} !important;
     }}
     
-    /* Button with Animation */
+    /* Button with Animation (No change) */
     [data-testid="stButton"] button {{
         background-color: {PRIMARY_CSS} !important;
         color: white !important;
@@ -134,10 +148,11 @@ st.markdown(f"""
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }}
     
-    /* --- Custom Metric Styling --- */
+    /* --- Custom Metric Styling (No change) --- */
     .metric-card {{
         background-color: {SECONDARY_BG_CSS};
         border-radius: 10px;
+        margin-bottom: 25px;
         padding: 1rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         height: 100%; 
@@ -154,7 +169,7 @@ st.markdown(f"""
         margin-top: 0px;
     }}
     
-    /* --- Dynamic Color Classes (FIXED with higher specificity) --- */
+    /* --- Dynamic Color Classes (No change) --- */
     .metric-value.risk-low {{
         color: {PRIMARY_CSS} !important; 
     }}
@@ -164,30 +179,55 @@ st.markdown(f"""
     .metric-value.risk-high {{
         color: #D14343 !important; 
     }}
-    /* --- END NEW STYLES --- */
     
     [data-testid="stSidebar"] > div:first-child {{
         background-color: {SECONDARY_BG_CSS};
         backdrop-filter: blur(5px);
+    }}
+    /* NEW: Style for Sidebar text */
+    [data-testid="stSidebar"] h3 {{
+        color: {PRIMARY_CSS} !important;
+        font-size: 1.25rem !important;
+    }}
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] .stCaption {{
+        color: {TEXT_CSS} !important;
+    }}
+    /* NEW: Style for Audio Player */
+    [data-testid="stAudio"] {{
+        background-color: {SECONDARY_BG_CSS};
+        border-radius: 10px;
+        padding: 0.5rem 1rem 1rem 1rem; /* Add some padding */
+        margin-top: -10px; /* Pull it up closer to the caption */
+        border: 1px solid {PRIMARY_CSS};
+    }}
+    [data-testid="stAudio"] audio {{
+        width: 100%;
     }}
     
     [data-testid="stHorizontalBlock"] {{
         gap: 2rem;
     }}
     
+    /* --- NEW: Upgraded Suggestion Card Style --- */
     .suggestion-card {{
         background-color: {SECONDARY_BG_CSS};
         border-radius: 10px;
         padding: 1.5rem;
-        /* margin-top: 1rem; 
+        border-left: 5px solid {PRIMARY_CSS}; /* Accent border */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }}
-    
-    /* --- This style will now be applied correctly --- */
-    .suggestion-card div {{
-        font-size: 1.15rem !important; 
-        line-height: 1.6;             
-        margin-bottom: 1rem;          
+    .suggestion-header {{
+        font-size: 1.25rem !important;
+        font-weight: 600;
+        color: {PRIMARY_CSS} !important;
+        margin-bottom: 1rem;
+        margin-top: -0.5rem; /* Pull header up a bit */
+    }}
+    .suggestion-item {{
+        font-size: 1.05rem !important; 
+        line-height: 1.6;         
+        margin-bottom: 0.5rem;         
+        color: {TEXT_CSS} !important;
     }}
 
 </style>
@@ -195,7 +235,6 @@ st.markdown(f"""
 
 
 # --- Helper Functions (Text Analysis) ---
-
 @st.cache_data
 def get_stopwords():
     return set(stopwords.words('english'))
@@ -214,7 +253,11 @@ def clean_text(text):
 def get_risk_level_and_suggestions(score):
     if score > 0.80:
         risk_level = "High"
-        suggestions = ["It seems like you're under a lot of stress.", "It's important to talk to someone. You can connect with people who can support you by calling or texting 988 in the US and Canada, or 111 in the UK, anytime."]
+        # --- RE-ADDED INDIA-SPECIFIC HELPLINES ---
+        suggestions = [
+            "It seems like you're under a lot of stress.",
+            "It's important to talk to someone. You can connect with 24/7 helplines in India, like the **Kiran Helpline at 1800-599-0019** or the **Vandrevala Foundation at 9999666555**."
+        ]
     elif score > 0.50:
         risk_level = "Moderate"
         suggestions = ["You seem to be feeling some pressure.", "Try taking a 10-minute break. A short walk or some deep breathing can help.", "Consider writing down what's on your mind. This is a great journaling habit."]
@@ -224,18 +267,15 @@ def get_risk_level_and_suggestions(score):
     return risk_level, suggestions
 
 def get_risk_class(risk_level):
-    """Returns the CSS class string based on the risk level."""
     if risk_level == "High":
         return "risk-high"
     if risk_level == "Moderate":
         return "risk-moderate"
     return "risk-low"
 
-# --- Load Models (Cached for performance) ---
-
+# --- Load Models (Cached for performance - No change) ---
 @st.cache_resource
 def load_text_models():
-    """Loads the saved text model and vectorizer from disk."""
     try:
         with open('vectorizer.pkl', 'rb') as f:
             vectorizer = pickle.load(f)
@@ -250,7 +290,16 @@ def load_text_models():
 
 vectorizer, model = load_text_models()
 
-# UI
+# --- NEW: Dynamic Spinner Messages ---
+calm_messages = [
+    "Taking a deep breath...",
+    "Analyzing your thoughts with care...",
+    "Finding insights for you...",
+    "Hold on, just a moment...",
+    "Processing with a calm mind...",
+]
+
+# --- UI ---
 st.title("MindfulAI 🧠")
 st.write("Your personal AI assistant for analyzing journal entries and expressions. Write down your thoughts or upload a picture to get gentle, supportive insights.")
 st.divider()
@@ -272,40 +321,58 @@ else:
 
         if st.button("Analyze My Entry", type="primary", key="text_analyze"):
             if user_text:
-                with st.spinner("Analyzing your thoughts..."):
+                with st.spinner(random.choice(calm_messages)):
                     cleaned_new_text = clean_text(user_text)
                     new_text_vector = vectorizer.transform([cleaned_new_text])
                     probabilities = model.predict_proba(new_text_vector)
                     stress_likelihood_score = probabilities[0][1]
                     
-                    # Get risk level, suggestions, and CSS class
                     risk_level, suggestions = get_risk_level_and_suggestions(stress_likelihood_score)
                     risk_class = get_risk_class(risk_level)
                     
                     st.subheader("Your Text Analysis")
                     
                     col1_1, col1_2 = st.columns(2)
+                    
                     with col1_1:
-                        st.markdown(f"""
+                        metric_placeholder_1 = st.empty()
+                    with col1_2:
+                        metric_placeholder_2 = st.empty()
+                    
+                    final_score = stress_likelihood_score * 100
+                    for i in range(int(final_score) + 1):
+                        metric_placeholder_1.markdown(f"""
                         <div class="metric-card">
                             <p class="metric-label">Stress Likelihood Score</p>
-                            <p class="metric-value {risk_class}">{stress_likelihood_score * 100:.2f}%</p>
+                            <p class="metric-value {risk_class}">{i:.2f}%</p>
                         </div>
                         """, unsafe_allow_html=True)
+                        time.sleep(0.01) 
                     
-                    with col1_2:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <p class="metric-label">Calculated Risk Level</p>
-                            <p class="metric-value {risk_class}">{risk_level}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    metric_placeholder_1.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Stress Likelihood Score</p>
+                        <p class="metric-value {risk_class}">{final_score:.2f}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    metric_placeholder_2.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Risk Level</p>
+                        <p class="metric-value {risk_class}" style="font-size: 2.5rem; padding-top: 10px;">...</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    time.sleep(0.5) 
+                    metric_placeholder_2.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Risk Level</p>
+                        <p class="metric-value {risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{risk_level}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    st.subheader("Supportive Suggestions")   
-                    # Build the suggestion list as an HTML string
-                    suggestions_html = '<div class="suggestion-card">'
+                    suggestions_html = f'<div class="suggestion-card"><p class="suggestion-header">Supportive Suggestions</p>'
                     for s in suggestions:
-                        suggestions_html += f"<div>🔹 {s}</div>" # Put each suggestion in its own div
+                        suggestions_html += f'<div class="suggestion-item">🔹 {s}</div>'
                     suggestions_html += '</div>'
                     
                     st.markdown(suggestions_html, unsafe_allow_html=True)
@@ -329,7 +396,7 @@ else:
             
             st.image(cv2_img, channels="BGR", caption="Your Uploaded Image", width=300) 
             
-            with st.spinner("Analyzing your expression..."):
+            with st.spinner(random.choice(calm_messages)):
                 try:
                     analysis = DeepFace.analyze(
                         img_path = cv2_img, 
@@ -360,25 +427,50 @@ else:
                     st.subheader("Your Expression Analysis")
                     
                     col2_1, col2_2 = st.columns(2)
+                    
                     with col2_1:
-                        st.markdown(f"""
+                        img_metric_placeholder_1 = st.empty()
+                    with col2_2:
+                        img_metric_placeholder_2 = st.empty()
+
+                    for i in range(int(final_stress_score) + 1):
+                        img_metric_placeholder_1.markdown(f"""
                         <div class="metric-card">
                             <p class="metric-label">Calculated Stress Score</p>
-                            <p class="metric-value {image_risk_class}">{final_stress_score:.2f}%</p>
+                            <p class="metric-value {image_risk_class}">{i:.2f}%</p>
                         </div>
                         """, unsafe_allow_html=True)
+                        time.sleep(0.01) 
+                    
+                    img_metric_placeholder_1.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Stress Score</p>
+                        <p class="metric-value {image_risk_class}">{final_stress_score:.2f}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                    with col2_2:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <p class="metric-label">Calculated Risk Level</p>
-                            <p class="metric-value {image_risk_class}">{image_risk_level}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    img_metric_placeholder_2.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Risk Level</p>
+                        <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">...</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    time.sleep(0.5) 
+                    img_metric_placeholder_2.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Risk Level</p>
+                        <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{image_risk_level}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     st.write("Full Emotion Breakdown:")
+                    
+                    # --- THIS IS THE NEW, STYLISH BAR CHART SECTION ---
+                    
+                    # 1. Convert data to DataFrame
                     emotions_df = pd.DataFrame(emotions.items(), columns=['Emotion', 'Confidence'])
                     
+                    # 2. Define the color map
                     color_map = {
                         'angry': '#FF6B6B',
                         'disgust': '#FFD166',
@@ -388,14 +480,64 @@ else:
                         'surprise': '#FFC3A0',
                         'neutral': '#D3D3D3'
                     }
-                    emotions_df['color'] = emotions_df['Emotion'].map(color_map)
                     
-                    st.bar_chart(
-                        emotions_df.set_index('Emotion'),
-                        y='Confidence',
-                        color='color',
-                        use_container_width=True 
+                    # 3. Create the base chart
+                    base = alt.Chart(emotions_df).properties(
+                        # --- UPDATED: Set height by "step" to add padding ---
+                        height=alt.Step(35) # This gives each bar 35px of space
                     )
+
+                    # 4. Create the bars
+                    bars = base.mark_bar(
+                        cornerRadius=8, 
+                        # height=20 <-- REMOVED this fixed height
+                    ).encode(
+                        x=alt.X('Confidence:Q', axis=None), # Hide X-axis
+                        y=alt.Y('Emotion:N', sort=None, axis=alt.Axis(
+                            title=None, # Remove "Emotion" title
+                            labels=True,
+                            domain=False, # Remove axis line
+                            ticks=False, # Remove tick marks
+                            labelColor=TEXT_CSS, # Use theme color for labels
+                            labelFontSize=12,
+                            labelPadding=5
+                        )),
+                        # Use the color map for the bars
+                        color=alt.Color('Emotion:N',
+                            legend=None, # Hide the color legend
+                            scale=alt.Scale(
+                                domain=list(color_map.keys()),
+                                range=list(color_map.values())
+                            )
+                        ),
+                        # Add tooltips for hover
+                        tooltip=[
+                            alt.Tooltip('Emotion', title='Emotion'),
+                            alt.Tooltip('Confidence', title='Confidence', format='.2f')
+                        ]
+                    )
+
+                    # 5. Create the text labels for the bars
+                    text = bars.mark_text(
+                        align='left',
+                        baseline='middle',
+                        dx=5,  # Nudge text 5px to the right of the bar
+                        color=TEXT_CSS # Use theme color for text
+                    ).encode(
+                        text=alt.Text('Confidence:Q', format='.2f'),
+                        color=alt.value(TEXT_CSS) # Override color to be theme-based
+                    )
+                    
+                    # 6. Combine the bars and text
+                    final_chart = (bars + text).properties(
+                        background='transparent' # Make background transparent
+                    ).configure_view(
+                        strokeWidth=0 # Remove the chart border
+                    )
+
+                    # 7. Display the chart in Streamlit
+                    st.altair_chart(final_chart, use_container_width=True)
+                    # --- END OF NEW CHART SECTION ---
 
                 except ValueError as e:
                     st.error("No face detected in the image. Please try a clearer picture.")
