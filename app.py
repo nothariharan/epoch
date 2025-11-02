@@ -9,7 +9,9 @@ import numpy as np
 from deepface import DeepFace  
 import pandas as pd  
 import random  # Added for dynamic spinner messages
-import altair as alt # <-- NEW IMPORT FOR STYLISH CHARTS
+import altair as alt # For stylish charts
+import os      # <-- NEW IMPORT for finding files
+import glob    # <-- NEW IMPORT for finding files
 
 # --- Page Configuration (Must be the first Streamlit command) ---
 st.set_page_config(
@@ -61,7 +63,7 @@ themes = {
     }
 }
 
-# --- Sidebar for Theme Selection & NEW LOFI MUSIC ---
+# --- Sidebar for Theme Selection & UPDATED LOFI MUSIC ---
 with st.sidebar:
     st.header("Settings")
     theme_name = st.selectbox("Choose a calming theme:", themes.keys(), index=0)
@@ -69,12 +71,45 @@ with st.sidebar:
     st.divider()
     
     st.subheader("🎵 Lofi Music")
-    st.caption("Music for a calm session. Press play to start.")
-    st.audio(
-        "https://raw.githubusercontent.com/serp-ai/code-interpreter-assets/main/lofi-study-112-bpm.mp3", 
-        format="audio/mp3", 
-        loop=True
-    )
+    
+    # --- NEW: Random Song Player Logic ---
+    LOFI_FOLDER = "lofi"
+    GIF_URL = "https://i.pinimg.com/originals/39/f2/e8/39f2e8b6b7a0f3d61339d3637b78f6bf.gif" # "Now Playing" GIF
+    
+    # Check if the lofi folder exists
+    if os.path.isdir(LOFI_FOLDER):
+        # Find all .mp3 files in the folder
+        mp3_files = glob.glob(os.path.join(LOFI_FOLDER, "*.mp3"))
+        
+        if mp3_files:
+            # Select a random song
+            selected_song = random.choice(mp3_files)
+            
+            # Get just the filename for display
+            song_name = os.path.basename(selected_song).replace('.mp3', '').replace('_', ' ').title()
+            
+            # Display the "Now Playing" GIF
+            st.image(GIF_URL)
+            st.caption(f"Now playing: **{song_name}**")
+            
+            # Open and play the local file
+            try:
+                audio_file = open(selected_song, 'rb')
+                audio_bytes = audio_file.read()
+                st.audio(
+                    audio_bytes, 
+                    format="audio/mp3", 
+                    loop=True
+                )
+            except Exception as e:
+                st.error(f"Error playing '{song_name}': {e}")
+        else:
+            st.error(f"No .mp3 files found in the '{LOFI_FOLDER}' folder.")
+            st.caption("Please add some music!")
+    else:
+        st.error(f"Folder not found. Please create a folder named '{LOFI_FOLDER}' and add .mp3 files.")
+    # --- END OF NEW MUSIC SECTION ---
+
 
 selected_theme = themes[theme_name]
 BG_CSS = selected_theme["bg"]
@@ -197,11 +232,17 @@ st.markdown(f"""
         background-color: {SECONDARY_BG_CSS};
         border-radius: 10px;
         padding: 0.5rem 1rem 1rem 1rem; /* Add some padding */
-        margin-top: -10px; /* Pull it up closer to the caption */
+        margin-top: 10px; /* Pushed it down from the caption */
         border: 1px solid {PRIMARY_CSS};
     }}
     [data-testid="stAudio"] audio {{
         width: 100%;
+    }}
+    /* NEW: Style for the GIF */
+    [data-testid="stSidebar"] [data-testid="stImage"] img {{
+        border-radius: 8px;
+        border: 1px solid {PRIMARY_CSS};
+        margin-top: 10px;
     }}
     
     [data-testid="stHorizontalBlock"] {{
@@ -322,6 +363,7 @@ else:
         if st.button("Analyze My Entry", type="primary", key="text_analyze"):
             if user_text:
                 with st.spinner(random.choice(calm_messages)):
+                    # --- All AI logic happens here, without blocking 'sleep' calls ---
                     cleaned_new_text = clean_text(user_text)
                     new_text_vector = vectorizer.transform([cleaned_new_text])
                     probabilities = model.predict_proba(new_text_vector)
@@ -329,53 +371,39 @@ else:
                     
                     risk_level, suggestions = get_risk_level_and_suggestions(stress_likelihood_score)
                     risk_class = get_risk_class(risk_level)
-                    
-                    st.subheader("Your Text Analysis")
-                    
-                    col1_1, col1_2 = st.columns(2)
-                    
-                    with col1_1:
-                        metric_placeholder_1 = st.empty()
-                    with col1_2:
-                        metric_placeholder_2 = st.empty()
-                    
                     final_score = stress_likelihood_score * 100
-                    for i in range(int(final_score) + 1):
-                        metric_placeholder_1.markdown(f"""
-                        <div class="metric-card">
-                            <p class="metric-label">Stress Likelihood Score</p>
-                            <p class="metric-value {risk_class}">{i:.2f}%</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        time.sleep(0.01) 
                     
-                    metric_placeholder_1.markdown(f"""
+                # --- Results appear instantly after spinner ---
+                st.subheader("Your Text Analysis")
+                
+                col1_1, col1_2 = st.columns(2)
+                
+                # --- REMOVED: All animation placeholders and loops ---
+                with col1_1:
+                    # --- Display metric directly ---
+                    st.markdown(f"""
                     <div class="metric-card">
                         <p class="metric-label">Stress Likelihood Score</p>
                         <p class="metric-value {risk_class}">{final_score:.2f}%</p>
                     </div>
                     """, unsafe_allow_html=True)
 
-                    metric_placeholder_2.markdown(f"""
-                    <div class="metric-card">
-                        <p class="metric-label">Calculated Risk Level</p>
-                        <p class="metric-value {risk_class}" style="font-size: 2.5rem; padding-top: 10px;">...</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    time.sleep(0.5) 
-                    metric_placeholder_2.markdown(f"""
+                with col1_2:
+                    # --- Display metric directly ---
+                    st.markdown(f"""
                     <div class="metric-card">
                         <p class="metric-label">Calculated Risk Level</p>
                         <p class="metric-value {risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{risk_level}</p>
                     </div>
                     """, unsafe_allow_html=True)
-                    
-                    suggestions_html = f'<div class="suggestion-card"><p class="suggestion-header">Supportive Suggestions</p>'
-                    for s in suggestions:
-                        suggestions_html += f'<div class="suggestion-item">🔹 {s}</div>'
-                    suggestions_html += '</div>'
-                    
-                    st.markdown(suggestions_html, unsafe_allow_html=True)
+                
+                # --- Display suggestions card directly ---
+                suggestions_html = f'<div class="suggestion-card"><p class="suggestion-header">Supportive Suggestions</p>'
+                for s in suggestions:
+                    suggestions_html += f'<div class="suggestion-item">🔹 {s}</div>'
+                suggestions_html += '</div>'
+                
+                st.markdown(suggestions_html, unsafe_allow_html=True)
             else:
                 st.warning("Please enter some text to analyze.")
 
@@ -398,6 +426,7 @@ else:
             
             with st.spinner(random.choice(calm_messages)):
                 try:
+                    # --- All AI logic happens here ---
                     analysis = DeepFace.analyze(
                         img_path = cv2_img, 
                         actions = ['emotion'],
@@ -424,120 +453,66 @@ else:
                     
                     image_risk_class = get_risk_class(image_risk_level)
                     
+                    # --- Results appear instantly after spinner ---
                     st.subheader("Your Expression Analysis")
                     
                     col2_1, col2_2 = st.columns(2)
                     
+                    # --- REMOVED: All animation placeholders and loops ---
                     with col2_1:
-                        img_metric_placeholder_1 = st.empty()
-                    with col2_2:
-                        img_metric_placeholder_2 = st.empty()
-
-                    for i in range(int(final_stress_score) + 1):
-                        img_metric_placeholder_1.markdown(f"""
+                        # --- Display metric directly ---
+                        st.markdown(f"""
                         <div class="metric-card">
                             <p class="metric-label">Calculated Stress Score</p>
-                            <p class="metric-value {image_risk_class}">{i:.2f}%</p>
+                            <p class="metric-value {image_risk_class}">{final_stress_score:.2f}%</p>
                         </div>
                         """, unsafe_allow_html=True)
-                        time.sleep(0.01) 
-                    
-                    img_metric_placeholder_1.markdown(f"""
-                    <div class="metric-card">
-                        <p class="metric-label">Calculated Stress Score</p>
-                        <p class="metric-value {image_risk_class}">{final_stress_score:.2f}%</p>
-                    </div>
-                    """, unsafe_allow_html=True)
 
-                    img_metric_placeholder_2.markdown(f"""
-                    <div class="metric-card">
-                        <p class="metric-label">Calculated Risk Level</p>
-                        <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">...</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    time.sleep(0.5) 
-                    img_metric_placeholder_2.markdown(f"""
-                    <div class="metric-card">
-                        <p class="metric-label">Calculated Risk Level</p>
-                        <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{image_risk_level}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    with col2_2:
+                        # --- Display metric directly ---
+                        st.markdown(f"""
+                        <div class="metric-card">
+                            <p class="metric-label">Calculated Risk Level</p>
+                            <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{image_risk_level}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                     
+                    # --- Display bar chart directly ---
                     st.write("Full Emotion Breakdown:")
                     
-                    # --- THIS IS THE NEW, STYLISH BAR CHART SECTION ---
-                    
-                    # 1. Convert data to DataFrame
+                    # --- STYLISH BAR CHART SECTION ---
                     emotions_df = pd.DataFrame(emotions.items(), columns=['Emotion', 'Confidence'])
-                    
-                    # 2. Define the color map
                     color_map = {
-                        'angry': '#FF6B6B',
-                        'disgust': '#FFD166',
-                        'fear': '#6A057F',
-                        'happy': '#06D6A0',
-                        'sad': '#118AB2',
-                        'surprise': '#FFC3A0',
+                        'angry': '#FF6B6B', 'disgust': '#FFD166', 'fear': '#6A057F',
+                        'happy': '#06D6A0', 'sad': '#118AB2', 'surprise': '#FFC3A0',
                         'neutral': '#D3D3D3'
                     }
                     
-                    # 3. Create the base chart
-                    base = alt.Chart(emotions_df).properties(
-                        # --- UPDATED: Set height by "step" to add padding ---
-                        height=alt.Step(35) # This gives each bar 35px of space
-                    )
+                    base = alt.Chart(emotions_df).properties(height=alt.Step(35))
 
-                    # 4. Create the bars
-                    bars = base.mark_bar(
-                        cornerRadius=8, 
-                        # height=20 <-- REMOVED this fixed height
-                    ).encode(
-                        x=alt.X('Confidence:Q', axis=None), # Hide X-axis
+                    bars = base.mark_bar(cornerRadius=8).encode(
+                        x=alt.X('Confidence:Q', axis=None), 
                         y=alt.Y('Emotion:N', sort=None, axis=alt.Axis(
-                            title=None, # Remove "Emotion" title
-                            labels=True,
-                            domain=False, # Remove axis line
-                            ticks=False, # Remove tick marks
-                            labelColor=TEXT_CSS, # Use theme color for labels
-                            labelFontSize=12,
-                            labelPadding=5
+                            title=None, labels=True, domain=False, ticks=False, 
+                            labelColor=TEXT_CSS, labelFontSize=12, labelPadding=5
                         )),
-                        # Use the color map for the bars
-                        color=alt.Color('Emotion:N',
-                            legend=None, # Hide the color legend
-                            scale=alt.Scale(
-                                domain=list(color_map.keys()),
-                                range=list(color_map.values())
-                            )
-                        ),
-                        # Add tooltips for hover
+                        color=alt.Color('Emotion:N', legend=None, scale=alt.Scale(
+                            domain=list(color_map.keys()), range=list(color_map.values())
+                        )),
                         tooltip=[
                             alt.Tooltip('Emotion', title='Emotion'),
                             alt.Tooltip('Confidence', title='Confidence', format='.2f')
                         ]
                     )
 
-                    # 5. Create the text labels for the bars
-                    text = bars.mark_text(
-                        align='left',
-                        baseline='middle',
-                        dx=5,  # Nudge text 5px to the right of the bar
-                        color=TEXT_CSS # Use theme color for text
-                    ).encode(
+                    text = bars.mark_text(align='left', baseline='middle', dx=5, color=TEXT_CSS).encode(
                         text=alt.Text('Confidence:Q', format='.2f'),
-                        color=alt.value(TEXT_CSS) # Override color to be theme-based
+                        color=alt.value(TEXT_CSS) 
                     )
                     
-                    # 6. Combine the bars and text
-                    final_chart = (bars + text).properties(
-                        background='transparent' # Make background transparent
-                    ).configure_view(
-                        strokeWidth=0 # Remove the chart border
-                    )
-
-                    # 7. Display the chart in Streamlit
+                    final_chart = (bars + text).properties(background='transparent').configure_view(strokeWidth=0)
                     st.altair_chart(final_chart, use_container_width=True)
-                    # --- END OF NEW CHART SECTION ---
+                    # --- END OF CHART SECTION ---
 
                 except ValueError as e:
                     st.error("No face detected in the image. Please try a clearer picture.")
