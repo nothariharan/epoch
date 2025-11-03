@@ -10,8 +10,8 @@ from deepface import DeepFace
 import pandas as pd  
 import random  # Added for dynamic spinner messages
 import altair as alt # For stylish charts
-import os      # <-- NEW IMPORT for finding files
-import glob    # <-- NEW IMPORT for finding files
+import os      
+import glob    
 
 # --- Page Configuration (Must be the first Streamlit command) ---
 st.set_page_config(
@@ -33,32 +33,32 @@ download_stopwords()
 themes = {
     "Serene Mint": {
         "bg": "linear-gradient(to right, #D4E2D4, #F2F7F2)",
-        "text": "#333333",
-        "primary": "#4A6D4A", # Green (for Low Risk)
+        "text": "#333333", # Dark text for light theme
+        "primary": "#4A6D4A", 
         "secondary_bg": "rgba(255, 255, 255, 0.7)", 
     },
     "Calm Blue": {
         "bg": "linear-gradient(to right, #E0EAFC, #CFDEF3)",
-        "text": "#2C3E50",
-        "primary": "#3498DB", # Blue (for Low Risk)
+        "text": "#2C3E50", # Dark text for light theme
+        "primary": "#3498DB", 
         "secondary_bg": "rgba(255, 255, 255, 0.7)",
     },
     "Sunset": {
         "bg": "linear-gradient(to right, #FFC3A0, #FFAFBD)",
-        "text": "#50394C",
-        "primary": "#FF6B6B", # Red (for Low Risk)
+        "text": "#50394C", # Dark text for light theme
+        "primary": "#FF6B6B", 
         "secondary_bg": "rgba(255, 255, 255, 0.6)",
     },
     "Lavender": {
         "bg": "linear-gradient(to right, #E6E6FA, #D8BFD8)",
-        "text": "#4B0082",
-        "primary": "#8A2BE2", # Purple (for Low Risk)
+        "text": "#4B0082", # Dark text for light theme
+        "primary": "#8A2BE2", 
         "secondary_bg": "rgba(255, 255, 255, 0.7)",
     },
     "Default (Dark)": {
-        "bg": "#0E117", 
-        "text": "#FFFFFF",
-        "primary": "#00A9FF", # Blue (for Low Risk)
+        "bg": "#0E117", # Note: Streamlit default dark is #0E1117
+        "text": "#FFFFFF", # White text for dark theme
+        "primary": "#00A9FF", 
         "secondary_bg": "rgba(40, 40, 40, 0.8)", 
     }
 }
@@ -66,33 +66,50 @@ themes = {
 # --- Sidebar for Theme Selection & UPDATED LOFI MUSIC ---
 with st.sidebar:
     st.header("Settings")
-    theme_name = st.selectbox("Choose a calming theme:", themes.keys(), index=0)
+    theme_name = st.selectbox("Choose a calming theme:", themes.keys(), index=4) # Default to Dark
     
     st.divider()
     
     st.subheader("🎵 Lofi Music")
     
-    # --- NEW: Random Song Player Logic ---
+    # --- NEW: Track Selection Logic ---
     LOFI_FOLDER = "lofi"
-    GIF_URL = "https://i.pinimg.com/originals/39/f2/e8/39f2e8b6b7a0f3d61339d3637b78f6bf.gif" # "Now Playing" GIF
     
     # Check if the lofi folder exists
     if os.path.isdir(LOFI_FOLDER):
-        # Find all .mp3 files in the folder
         mp3_files = glob.glob(os.path.join(LOFI_FOLDER, "*.mp3"))
         
         if mp3_files:
-            # Select a random song
-            selected_song = random.choice(mp3_files)
+            # Initialize session state for song index
+            if 'current_song_index' not in st.session_state or st.session_state.current_song_index >= len(mp3_files):
+                # Pick a random song to start
+                st.session_state.current_song_index = random.randint(0, len(mp3_files) - 1)
+            
+            current_index = st.session_state.current_song_index
+            selected_song = mp3_files[current_index]
             
             # Get just the filename for display
             song_name = os.path.basename(selected_song).replace('.mp3', '').replace('_', ' ').title()
             
-            # Display the "Now Playing" GIF
-            st.image(GIF_URL)
+            # Display current track
             st.caption(f"Now playing: **{song_name}**")
+
+            # Create columns for next/prev buttons
+            col1_side, col2_side = st.columns([1, 1])
+            with col1_side:
+                if st.button("⏮️ Prev", use_container_width=True):
+                    # Go to the previous song, wrap around if at the start
+                    st.session_state.current_song_index = (current_index - 1) % len(mp3_files)
+                    st.rerun() # Rerun to load the new song
             
-            # Open and play the local file
+            with col2_side:
+                if st.button("Next ⏭️", use_container_width=True):
+                    # Go to the next song, wrap around if at the end
+                    st.session_state.current_song_index = (current_index + 1) % len(mp3_files)
+                    st.rerun() # Rerun to load the new song
+
+            # Open and play the selected local file
+            # The st.audio component has its own play/pause and volume controls
             try:
                 audio_file = open(selected_song, 'rb')
                 audio_bytes = audio_file.read()
@@ -117,6 +134,12 @@ TEXT_CSS = selected_theme["text"]
 PRIMARY_CSS = selected_theme["primary"]
 SECONDARY_BG_CSS = selected_theme["secondary_bg"] 
 
+# --- NEW: Dynamic Sidebar Header Color ---
+if theme_name == "Default (Dark)":
+    SIDEBAR_HEADER_CSS = PRIMARY_CSS
+else:
+    SIDEBAR_HEADER_CSS = TEXT_CSS
+
 # --- Custom CSS Injection (UPDATED) ---
 st.markdown(f"""
 <style>
@@ -127,6 +150,7 @@ st.markdown(f"""
     }}
     
     /* --- DYNAMIC TEXT --- */
+    /* Main headers */
     .appview-container h1,
     .appview-container h2,
     .appview-container h3 {{
@@ -134,6 +158,7 @@ st.markdown(f"""
         font-weight: 600;
     }}
     
+    /* Main body text */
     .appview-container p,
     .appview-container .stMarkdown,
     .appview-container .stSelectbox,
@@ -163,7 +188,7 @@ st.markdown(f"""
         color: {TEXT_CSS} !important;
     }}
     
-    /* Button with Animation (No change) */
+    /* Main buttons */
     [data-testid="stButton"] button {{
         background-color: {PRIMARY_CSS} !important;
         color: white !important;
@@ -215,34 +240,49 @@ st.markdown(f"""
         color: #D14343 !important; 
     }}
     
+    /* --- SIDEBAR STYLING --- */
     [data-testid="stSidebar"] > div:first-child {{
         background-color: {SECONDARY_BG_CSS};
         backdrop-filter: blur(5px);
     }}
-    /* NEW: Style for Sidebar text */
+    
+    /* NEW: Style for Sidebar headers (h3) */
     [data-testid="stSidebar"] h3 {{
-        color: {PRIMARY_CSS} !important;
+        color: {SIDEBAR_HEADER_CSS} !important; /* Uses new dynamic variable */
         font-size: 1.25rem !important;
     }}
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] .stCaption {{
+    
+    /* NEW: Style for Sidebar text, captions, and selectbox */
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] .stCaption,
+    [data-testid="stSidebar"] .stSelectbox {{
         color: {TEXT_CSS} !important;
     }}
+    
     /* NEW: Style for Audio Player */
     [data-testid="stAudio"] {{
         background-color: {SECONDARY_BG_CSS};
         border-radius: 10px;
-        padding: 0.5rem 1rem 1rem 1rem; /* Add some padding */
-        margin-top: 10px; /* Pushed it down from the caption */
+        padding: 0.5rem 1rem 1rem 1rem; 
+        margin-top: 10px; 
         border: 1px solid {PRIMARY_CSS};
     }}
     [data-testid="stAudio"] audio {{
         width: 100%;
     }}
-    /* NEW: Style for the GIF */
-    [data-testid="stSidebar"] [data-testid="stImage"] img {{
-        border-radius: 8px;
+
+    /* NEW: Style for Sidebar buttons (Prev/Next) */
+    [data-testid="stSidebar"] [data-testid="stButton"] button {{
+        background-color: {SECONDARY_BG_CSS} !important;
+        color: {TEXT_CSS} !important;
         border: 1px solid {PRIMARY_CSS};
-        margin-top: 10px;
+        font-weight: 600;
+    }}
+    [data-testid="stSidebar"] [data-testid="stButton"] button:hover {{
+        filter: brightness(0.9);
+        border-color: {PRIMARY_CSS};
+        transform: translateY(0px); /* Disable lift effect in sidebar */
+        box-shadow: none;
     }}
     
     [data-testid="stHorizontalBlock"] {{
@@ -254,7 +294,7 @@ st.markdown(f"""
         background-color: {SECONDARY_BG_CSS};
         border-radius: 10px;
         padding: 1.5rem;
-        border-left: 5px solid {PRIMARY_CSS}; /* Accent border */
+        border-left: 5px solid {PRIMARY_CSS}; 
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }}
     .suggestion-header {{
@@ -262,7 +302,7 @@ st.markdown(f"""
         font-weight: 600;
         color: {PRIMARY_CSS} !important;
         margin-bottom: 1rem;
-        margin-top: -0.5rem; /* Pull header up a bit */
+        margin-top: -0.5rem; 
     }}
     .suggestion-item {{
         font-size: 1.05rem !important; 
@@ -371,33 +411,42 @@ else:
                     
                     risk_level, suggestions = get_risk_level_and_suggestions(stress_likelihood_score)
                     risk_class = get_risk_class(risk_level)
-                    final_score = stress_likelihood_score * 100
                     
-                # --- Results appear instantly after spinner ---
                 st.subheader("Your Text Analysis")
                 
                 col1_1, col1_2 = st.columns(2)
                 
-                # --- REMOVED: All animation placeholders and loops ---
-                with col1_1:
-                    # --- Display metric directly ---
-                    st.markdown(f"""
+                metric1_placeholder = col1_1.empty()
+                metric2_placeholder = col1_2.empty()
+                
+                # --- THIS IS THE FIX ---
+                # Cast to standard Python float, then to int
+                final_score = float(stress_likelihood_score * 100) # Ensure it's a Python float
+                for i in range(int(final_score) + 1):
+                    metric1_placeholder.markdown(f"""
                     <div class="metric-card">
                         <p class="metric-label">Stress Likelihood Score</p>
-                        <p class="metric-value {risk_class}">{final_score:.2f}%</p>
+                        <p class="metric-value {risk_class}">{i:.2f}%</p>
                     </div>
                     """, unsafe_allow_html=True)
+                    # --- THIS IS THE FIX ---
+                    # Also cast the denominator value to a float
+                    time.sleep(0.01 / max(1.0, (float(final_score) / 20.0))) # Make animation faster for high scores
 
-                with col1_2:
-                    # --- Display metric directly ---
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <p class="metric-label">Calculated Risk Level</p>
-                        <p class="metric-value {risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{risk_level}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                metric1_placeholder.markdown(f"""
+                <div class="metric-card">
+                    <p class="metric-label">Stress Likelihood Score</p>
+                    <p class="metric-value {risk_class}">{final_score:.2f}%</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+                metric2_placeholder.markdown(f"""
+                <div class="metric-card">
+                    <p class="metric-label">Calculated Risk Level</p>
+                    <p class="metric-value {risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{risk_level}</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                # --- Display suggestions card directly ---
                 suggestions_html = f'<div class="suggestion-card"><p class="suggestion-header">Supportive Suggestions</p>'
                 for s in suggestions:
                     suggestions_html += f'<div class="suggestion-item">🔹 {s}</div>'
@@ -426,14 +475,18 @@ else:
             
             with st.spinner(random.choice(calm_messages)):
                 try:
-                    # --- All AI logic happens here ---
                     analysis = DeepFace.analyze(
                         img_path = cv2_img, 
                         actions = ['emotion'],
                         enforce_detection = True 
                     )
                     
-                    result = analysis[0]
+                    # --- FIX: Handle if DeepFace returns a dict OR a list ---
+                    if isinstance(analysis, list):
+                        result = analysis[0] # Get the first face detected
+                    else:
+                        result = analysis # It's already the result dict
+                        
                     emotions = result['emotion']
                     
                     stress_score_sum = (
@@ -453,31 +506,41 @@ else:
                     
                     image_risk_class = get_risk_class(image_risk_level)
                     
-                    # --- Results appear instantly after spinner ---
                     st.subheader("Your Expression Analysis")
                     
                     col2_1, col2_2 = st.columns(2)
                     
-                    # --- REMOVED: All animation placeholders and loops ---
-                    with col2_1:
-                        # --- Display metric directly ---
-                        st.markdown(f"""
+                    metric3_placeholder = col2_1.empty()
+                    metric4_placeholder = col2_2.empty()
+
+                    # --- THIS IS THE FIX ---
+                    # Cast to standard Python float, then to int
+                    final_stress_score = float(final_stress_score) # Ensure it's a Python float
+                    for i in range(int(final_stress_score) + 1):
+                        metric3_placeholder.markdown(f"""
                         <div class="metric-card">
                             <p class="metric-label">Calculated Stress Score</p>
-                            <p class="metric-value {image_risk_class}">{final_stress_score:.2f}%</p>
+                            <p class="metric-value {image_risk_class}">{i:.2f}%</p>
                         </div>
                         """, unsafe_allow_html=True)
-
-                    with col2_2:
-                        # --- Display metric directly ---
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <p class="metric-label">Calculated Risk Level</p>
-                            <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{image_risk_level}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        # --- THIS IS THE FIX ---
+                        # Also cast the denominator value to a float
+                        time.sleep(0.01 / max(1.0, (float(final_stress_score) / 20.0))) # Make animation faster
                     
-                    # --- Display bar chart directly ---
+                    metric3_placeholder.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Stress Score</p>
+                        <p class="metric-value {image_risk_class}">{final_stress_score:.2f}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    metric4_placeholder.markdown(f"""
+                    <div class="metric-card">
+                        <p class="metric-label">Calculated Risk Level</p>
+                        <p class="metric-value {image_risk_class}" style="font-size: 2.5rem; padding-top: 10px;">{image_risk_level}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                     st.write("Full Emotion Breakdown:")
                     
                     # --- STYLISH BAR CHART SECTION ---
@@ -515,7 +578,10 @@ else:
                     # --- END OF CHART SECTION ---
 
                 except ValueError as e:
-                    st.error("No face detected in the image. Please try a clearer picture.")
+                    if "face could not be detected" in str(e).lower():
+                         st.error("No face detected in the image. Please try a clearer picture.")
+                    else:
+                         st.error(f"An error occurred during analysis: {e}")
                 except Exception as e:
-                    st.error(f"An error occurred during analysis: {e}")
+                    st.error(f"An unexpected error occurred: {e}")
 
