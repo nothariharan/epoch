@@ -140,12 +140,19 @@ if theme_name == "Default (Dark)":
 else:
     SIDEBAR_HEADER_CSS = TEXT_CSS
 
+# --- NEW: Define Sidebar BG Image URL ---
+SIDEBAR_BG_IMAGE = "url('https://github.com/nothariharan/epoch/blob/main/public/settings.jpg?raw=true')"
+
 # --- Custom CSS Injection (UPDATED) ---
 st.markdown(f"""
 <style>
     /* Main app background */
     .appview-container {{
         background: {BG_CSS};
+        /* Added properties for image backgrounds */
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }}
     
@@ -168,12 +175,20 @@ st.markdown(f"""
     }}
     
     /* --- COMPONENT STYLING --- */
+    /* --- THIS IS THE CHANGE --- */
     [data-testid="stTextArea"] textarea {{
-        background-color: {SECONDARY_BG_CSS} !important;
-        color: {TEXT_CSS} !important;
+        /* NEW: Set the same background image as the sidebar */
+        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), {SIDEBAR_BG_IMAGE};
+        background-size: cover;
+        background-position: center;
+        
+        /* NEW: Force text to be white for readability */
+        color: #FFFFFF !important; 
+        
         border: 1px solid {PRIMARY_CSS};
         border-radius: 8px;
     }}
+    /* --- END OF CHANGE --- */
     
     [data-testid="stFileUploader"] {{
         background-color: {SECONDARY_BG_CSS};
@@ -241,47 +256,55 @@ st.markdown(f"""
     }}
     
     /* --- SIDEBAR STYLING --- */
+    [data-testid="stSidebar"] {{
+        background-image: {SIDEBAR_BG_IMAGE};
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }}
+
+    /* Make the sidebar elements semi-transparent to see the bg */
     [data-testid="stSidebar"] > div:first-child {{
-        background-color: {SECONDARY_BG_CSS};
-        backdrop-filter: blur(5px);
+        background-color: rgba(0, 0, 0, 0.5); /* Dark overlay */
+        backdrop-filter: blur(2px);
     }}
     
-    /* NEW: Style for Sidebar headers (h3) */
+    /* Style for Sidebar headers (h3) */
     [data-testid="stSidebar"] h3 {{
-        color: {SIDEBAR_HEADER_CSS} !important; /* Uses new dynamic variable */
+        color: #FFFFFF !important; /* White for readability on image */
         font-size: 1.25rem !important;
     }}
     
-    /* NEW: Style for Sidebar text, captions, and selectbox */
+    /* Style for Sidebar text, captions, and selectbox */
     [data-testid="stSidebar"] p, 
     [data-testid="stSidebar"] .stCaption,
-    [data-testid="stSidebar"] .stSelectbox {{
-        color: {TEXT_CSS} !important;
+    [data-testid="stSidebar"] label {{ /* Target selectbox label */
+        color: #FFFFFF !important; /* White for readability */
     }}
     
-    /* NEW: Style for Audio Player */
+    /* Style for Audio Player */
     [data-testid="stAudio"] {{
-        background-color: {SECONDARY_BG_CSS};
+        background-color: rgba(255, 255, 255, 0.2); /* Light transparent overlay */
         border-radius: 10px;
         padding: 0.5rem 1rem 1rem 1rem; 
         margin-top: 10px; 
-        border: 1px solid {PRIMARY_CSS};
+        border: 1px solid rgba(255, 255, 255, 0.5);
     }}
     [data-testid="stAudio"] audio {{
         width: 100%;
     }}
 
-    /* NEW: Style for Sidebar buttons (Prev/Next) */
+    /* Style for Sidebar buttons (Prev/Next) */
     [data-testid="stSidebar"] [data-testid="stButton"] button {{
-        background-color: {SECONDARY_BG_CSS} !important;
-        color: {TEXT_CSS} !important;
-        border: 1px solid {PRIMARY_CSS};
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        color: #FFFFFF !important; /* White text */
+        border: 1px solid rgba(255, 255, 255, 0.5);
         font-weight: 600;
     }}
     [data-testid="stSidebar"] [data-testid="stButton"] button:hover {{
-        filter: brightness(0.9);
-        border-color: {PRIMARY_CSS};
-        transform: translateY(0px); /* Disable lift effect in sidebar */
+        filter: brightness(1.2);
+        border-color: #FFFFFF;
+        transform: translateY(0px);
         box-shadow: none;
     }}
     
@@ -289,7 +312,7 @@ st.markdown(f"""
         gap: 2rem;
     }}
     
-    /* --- NEW: Upgraded Suggestion Card Style --- */
+    /* --- Upgraded Suggestion Card Style --- */
     .suggestion-card {{
         background-color: {SECONDARY_BG_CSS};
         border-radius: 10px;
