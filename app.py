@@ -32,31 +32,31 @@ download_stopwords()
 # --- THEMES (No change) ---
 themes = {
     "Serene Mint": {
-        "bg": "linear-gradient(to right, #D4E2D4, #F2F7F2)",
+        "bg": "url('https://github.com/nothariharan/epoch/blob/main/public/serrene_mint.jpg?raw=true')",
         "text": "#333333", # Dark text for light theme
         "primary": "#4A6D4A", 
         "secondary_bg": "rgba(255, 255, 255, 0.7)", 
     },
     "Calm Blue": {
-        "bg": "linear-gradient(to right, #E0EAFC, #CFDEF3)",
-        "text": "#2C3E50", # Dark text for light theme
+        "bg": "url('https://github.com/nothariharan/epoch/blob/main/public/calm_blue.jpg?raw=true')",
+        "text": "#ffff", # Dark text for light theme
         "primary": "#3498DB", 
         "secondary_bg": "rgba(255, 255, 255, 0.7)",
     },
     "Sunset": {
-        "bg": "linear-gradient(to right, #FFC3A0, #FFAFBD)",
-        "text": "#50394C", # Dark text for light theme
+        "bg": "url('https://github.com/nothariharan/epoch/blob/main/public/sunset.jpg?raw=true')",
+        "text": "#ffff", # Dark text for light theme
         "primary": "#FF6B6B", 
         "secondary_bg": "rgba(255, 255, 255, 0.6)",
     },
     "Lavender": {
-        "bg": "linear-gradient(to right, #E6E6FA, #D8BFD8)",
-        "text": "#4B0082", # Dark text for light theme
+        "bg": "url('https://github.com/nothariharan/epoch/blob/main/public/lavender.jpg?raw=true')",
+        "text": "#ffff", # Dark text for light theme
         "primary": "#8A2BE2", 
         "secondary_bg": "rgba(255, 255, 255, 0.7)",
     },
     "Default (Dark)": {
-        "bg": "#0E117", # Note: Streamlit default dark is #0E1117
+        "bg": "url('https://github.com/nothariharan/epoch/blob/main/public/dark.jpg?raw=true')",
         "text": "#FFFFFF", # White text for dark theme
         "primary": "#00A9FF", 
         "secondary_bg": "rgba(40, 40, 40, 0.8)", 
